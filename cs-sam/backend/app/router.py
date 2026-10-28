@@ -1,0 +1,58 @@
+import json
+from . import MyError
+from . import MyReq, MyResp
+from .controllers import ping_controller
+
+
+class MyRouter:
+    def __init__(self, path_handlers):
+        self.path_handlers = path_handlers
+
+    def route(self, req):
+        req_method = req.method
+        if req_method == 'OPTIONS':
+            return MyResp()
+
+        req_path_parts = self.split_path(req.path)
+        for (method, path, handler) in self.path_handlers:
+            if req_method != method:
+                continue
+            (match, params) = self.path_match(req_path_parts, self.split_path(path))
+            if match:
+                return MyResp(handler(req, *params))
+        raise MyError('Did not find the handler for path ' + req.path, 404)
+
+    def path_match(self, req_path_parts, handler_path_parts):
+        params = []
+        if len(req_path_parts) != len(handler_path_parts):
+            return (False, None)
+        for i in range(len(req_path_parts)):
+            req_path_part = req_path_parts[i]
+            handler_path_part = handler_path_parts[i]
+            if handler_path_part.startswith(':'):
+                params.append(req_path_part)
+            elif handler_path_part != req_path_part:
+                return (False, None)
+        return (True, tuple(params))
+
+    def split_path(self, path):
+        parts = []
+        for s in path.split('/'):
+            part = s.strip()
+            if part:
+                parts.append(part)
+        return parts
+
+def handle(event, context):
+    try:
+        req = MyReq(event)
+        router = MyRouter([
+            ('GET', '/ping', ping_controller.ping),
+        ])
+        return router.route(req)
+    except MyError as err:
+        print('MyError: ' + err.message )
+        return MyResp({ 'err': err.message }, err.code)
+    except Exception as e:
+        print(e)
+        return MyResp({ 'err': str(e) }, 500)
