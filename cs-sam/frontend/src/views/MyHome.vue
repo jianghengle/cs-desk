@@ -6,7 +6,7 @@
         Welcome to your home page!
       </h2>
 
-      <p>Check out your <router-link :to="'/admin'">Admin page</router-link> to see your data.</p>
+      <p><router-link :to="'/admin'">Admin page</router-link></p>
     </section>
     
   </div>

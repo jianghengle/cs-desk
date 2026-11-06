@@ -1,10 +1,11 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import MyHome from '../views/MyHome.vue'
-import MyAdmin from '../views/MyAdmin.vue'
-import AdminTable from '../views/AdminTable.vue'
-import AdminTableItem from '../views/AdminTableItem.vue'
-import CallAPIs from '../views/CallAPIs.vue'
+import MyAdmin from '../components/admin/MyAdmin.vue'
+import AdminTable from '../components/admin/AdminTable.vue'
+import AdminTableItem from '../components/admin/AdminTableItem.vue'
+import CallAPIs from '../components/admin/CallAPIs.vue'
+import AdminChat from '../components/admin/AdminChat.vue'
 
 Vue.use(VueRouter)
 
@@ -36,6 +37,11 @@ const router = new VueRouter({
       path: '/admin/call-apis',
       name: 'CallAPIs',
       component: CallAPIs
+    },
+    {
+      path: '/admin/ai-agent',
+      name: 'AdminChat',
+      component: AdminChat
     },
   ]
 })

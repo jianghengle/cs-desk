@@ -1,6 +1,6 @@
 <template>
   <div class="container my-page-body">
-    <div v-if="token" class="p-3">
+    <div v-if="token && isAdmin" class="p-3">
       <nav class="breadcrumb" aria-label="breadcrumbs">
         <ul>
           <li>
@@ -75,16 +75,16 @@
             <div v-else>
               <div v-if="f.type == 'bool'">
                 <checkbox-field :name="f.name" :label="f.name" :value="localItem[f.name]"
-                  :readonly="f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
+                  :readonly="i == 0 || f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
                   @value-changed="onValueChanged" />
               </div>
               <div v-if="f.type == 'int' || f.type == 'float'">
                 <number-field :name="f.name" :label="f.name" :value="localItem[f.name]"
-                  :readonly="f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
+                  :readonly="i == 0 ||f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
                   @value-changed="onValueChanged" />
               </div>
               <div v-if="f.type == 'timestamp'">
-                <div v-if="f.modifiers.includes('readonly') || f.modifiers.includes('auto')">
+                <div v-if="i == 0 ||f.modifiers.includes('readonly') || f.modifiers.includes('auto')">
                   <string-field :name="f.name" :label="f.name" :readonly="true"
                     :value="timestampToDatetime(localItem[f.name])" />
                 </div>
@@ -95,32 +95,32 @@
               </div>
               <div v-if="f.type == 'enum'">
                 <string-field :name="f.name" :label="f.name" :value="localItem[f.name]" :options="f.modifiers[0]"
-                  :readonly="f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
+                  :readonly="i == 0 || f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
                   @value-changed="onValueChanged" />
               </div>
               <div v-if="f.type == 'str'">
                 <string-field :name="f.name" :label="f.name" :value="localItem[f.name]"
-                  :readonly="f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
+                  :readonly="i == 0 ||f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
                   :required="f.modifiers.includes('required')" @value-changed="onValueChanged" />
               </div>
               <div v-if="f.type == 'text'">
                 <textarea-field :name="f.name" :label="f.name" :value="localItem[f.name]"
-                  :readonly="f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
+                  :readonly="i == 0 ||f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
                   @value-changed="onValueChanged" />
               </div>
               <div v-if="f.type == 'list'">
                 <strings-field :name="f.name" :label="f.name" :value="localItem[f.name]"
-                  :readonly="f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
+                  :readonly="i == 0 ||f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
                   @value-changed="onValueChanged" />
               </div>
               <div v-if="f.type == 'obj'">
                 <json-field :name="f.name" :label="f.name" :value="localItem[f.name]"
-                  :readonly="f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
+                  :readonly="i == 0 || f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
                   @value-changed="onValueChanged" />
               </div>
               <div v-if="f.type == 'email'">
                 <string-field :name="f.name" :label="f.name" :value="localItem[f.name]"
-                  :readonly="f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
+                  :readonly="i == 0 || f.modifiers.includes('readonly') || f.modifiers.includes('auto')"
                   :constraints="emailConstraints" @value-changed="onValueChanged" />
               </div>
               <div v-if="f.type == 'password' && !f.modifiers.includes('readonly') && !f.modifiers.includes('auto')">
@@ -203,14 +203,14 @@
 
 <script>
 import dateFormat from 'dateformat'
-import StringField from '../components/form/StringField.vue'
-import StringsField from '../components/form/StringsField.vue'
-import NumberField from '../components/form/NumberField.vue'
-import JsonField from '../components/form/JsonField.vue'
-import TextareaField from '../components/form/TextareaField.vue'
-import CheckboxField from '../components/form/CheckboxField.vue'
-import ChangePasswordModal from '../components/modals/ChangePasswordModal.vue'
-import NewPasswordField from '../components/form/NewPasswordField.vue'
+import StringField from '../form/StringField.vue'
+import StringsField from '../form/StringsField.vue'
+import NumberField from '../form/NumberField.vue'
+import JsonField from '../form/JsonField.vue'
+import TextareaField from '../form/TextareaField.vue'
+import CheckboxField from '../form/CheckboxField.vue'
+import ChangePasswordModal from '../modals/ChangePasswordModal.vue'
+import NewPasswordField from '../form/NewPasswordField.vue'
 
 export default {
   name: 'admin-table-item',
@@ -255,6 +255,9 @@ export default {
     },
     token () {
       return this.$store.state.user.token
+    },
+    isAdmin () {
+      return this.$store.state.user.isAdmin
     },
     tableModel () {
       return this.$route.params.tableModel

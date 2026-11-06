@@ -1,6 +1,6 @@
 <template>
   <div class="container my-page-body">
-    <div v-if="token" class="p-3">
+    <div v-if="token && isAdmin" class="p-3">
       <nav class="breadcrumb" aria-label="breadcrumbs">
         <ul>
           <li>
@@ -132,6 +132,9 @@ export default {
     },
     token () {
       return this.$store.state.user.token
+    },
+    isAdmin () {
+      return this.$store.state.user.isAdmin
     },
     tableModel () {
       return this.$route.params.tableModel

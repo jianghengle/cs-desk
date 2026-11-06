@@ -24,10 +24,22 @@
           </span>
         </p>
         <p class="control" v-if="isAdvanced">
-          <input class="input" type="text" placeholder="http://domain:port" v-model="host">
+          <input class="input" type="text" placeholder="https://domain:port" v-model="host">
+        </p>
+        <p class="control" v-if="!isAdvanced">
+          <a class="button is-static">
+            {{ server }}
+          </a>
+        </p>
+        <p class="control" v-if="!isAdvanced">
+          <span class="select">
+            <select v-model="pathPrefix">
+              <option v-for="(p, i) in (pathPrefixes[method] || [''])" :key="'pp-'+i">{{ p }}</option>
+            </select>
+          </span>
         </p>
         <p class="control is-expanded">
-          <input class="input" type="text" placeholder="/api/path" v-model="path">
+          <input class="input" type="text" placeholder="/path" v-model="path">
         </p>
       </div>
 
@@ -93,11 +105,33 @@ export default {
       headers: '',
       payload: '',
       resp: '',
+      tables: [],
+      pathPrefix: '',
     }
   },
   computed: {
     server () {
       return this.$store.state.config.server
+    },
+    adminPrefix () {
+      return this.$store.state.config.adminPrefix
+    },
+    pathPrefixes () {
+      var prefixes = {
+        'GET': ['', '/api/admin/get-tables'],
+        'POST': [],
+      }
+      for (var t of this.tables) {
+        prefixes.GET.push('/api/admin/get-table/' + t.modelName)
+        prefixes.GET.push('/api/admin/' + t.modelName + '/get-item/')
+        prefixes.POST.push('/api/admin/' + t.modelName + '/query-items')
+        prefixes.POST.push('/api/admin/' + t.modelName + '/scan-items')
+        prefixes.POST.push('/api/admin/' + t.modelName + '/create-item')
+        prefixes.POST.push('/api/admin/' + t.modelName + '/update-item/')
+        prefixes.POST.push('/api/admin/' + t.modelName + '/delete-item/')
+        prefixes.POST.push('/api/admin/call-bedrock-llm')
+      }
+      return prefixes
     },
     token () {
       return this.$store.state.user.token
@@ -112,7 +146,8 @@ export default {
       if (!this.headersValid) {
         return false
       }
-      if (!this.path) {
+      var path = this.isAdvanced ? this.path.trim() : ((this.pathPrefix ? this.pathPrefix.trim() : '') + this.path.trim())
+      if (!path) {
         return false
       }
       if (this.method != 'GET' && !this.payloadValid) {
@@ -135,10 +170,9 @@ export default {
         return
       }
       var method = this.method.toLowerCase()
-      var url = this.path.trim()
-      if (this.host) {
-        url = this.host.trim() + url
-      }
+      var url = this.isAdvanced ?
+        (this.host.trim() + this.path.trim()) : 
+        (this.server + (this.pathPrefix ? this.pathPrefix.trim() : '') + this.path.trim())
       var headers = JSON.parse(this.headers)
       var data = null
       if (this.method != 'GET') {
@@ -163,9 +197,20 @@ export default {
       }
       this.headers = JSON.stringify(headers, null, 2)
     },
+    getTables () {
+      this.waiting = true
+      this.$http.get(this.server + this.adminPrefix + 'get-tables').then(resp => {
+        this.tables = resp.body
+        this.waiting = false
+      }, err => {
+        this.error = err.body
+        this.waiting = false
+      })
+    },
   },
   mounted () {
     this.resetHeaders()
+    this.getTables()
   },
 }
 </script>

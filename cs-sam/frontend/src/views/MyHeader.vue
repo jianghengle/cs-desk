@@ -29,11 +29,14 @@
                 </span>
               </a>
               <div class="navbar-dropdown">
-                <router-link :to="'/admin'" class="navbar-item" v-if="isAdmin">
+                <router-link :to="'/admin'" class="navbar-item">
                   <span>Admin</span>
                 </router-link>
-                <router-link :to="'/admin/call-apis'" class="navbar-item" v-if="isAdmin">
+                <router-link :to="'/admin/call-apis'" class="navbar-item">
                   <span>Call APIs</span>
+                </router-link>
+                <router-link :to="'/admin/ai-agent'" class="navbar-item">
+                  <span>AI Agent</span>
                 </router-link>
               </div>
             </div>

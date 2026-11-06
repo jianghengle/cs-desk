@@ -34,47 +34,53 @@
     </section>
 
     <div v-if="token" class="p-3">
-      <nav class="breadcrumb" aria-label="breadcrumbs">
-        <ul>
-          <li class="is-active">
-            <router-link :to="'/admin'" aria-current="page">Tables</router-link>
-          </li>
-        </ul>
-      </nav>
+      <div v-if="isAdmin">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+          <ul>
+            <li class="is-active">
+              <router-link :to="'/admin'" aria-current="page">Tables</router-link>
+            </li>
+          </ul>
+        </nav>
 
-      <div class="mt-5">
-        <div v-if="waiting">
-          <span class="icon is-medium is-size-4">
-            <i class="fas fa-spinner fa-pulse"></i>
-          </span>
-        </div>
+        <div class="mt-5">
+          <div v-if="waiting">
+            <span class="icon is-medium is-size-4">
+              <i class="fas fa-spinner fa-pulse"></i>
+            </span>
+          </div>
 
-        <div v-if="error" class="notification is-danger is-light">
-          <button class="delete" @click="error=''"></button>
-          {{error}}
-        </div>
+          <div v-if="error" class="notification is-danger is-light">
+            <button class="delete" @click="error=''"></button>
+            {{error}}
+          </div>
 
-        <div class="box" v-for="(table, i) in tables" :key="'table-'+i">
-          <article class="media">
-            <div class="media-left">
-              <span>
-                <i class="fas fa-table"></i>
-              </span>
-            </div>
-            <div class="media-content">
-              <div class="content">
-                <p>
-                  <router-link :to="'/admin/table/' + table.modelName">
-                    <strong>{{ table.tableName }}</strong>
-                  </router-link><br/>
-                  <small>Items: {{ table.metadata.itemCount }}</small>
-                </p>
+          <div class="box" v-for="(table, i) in tables" :key="'table-'+i">
+            <article class="media">
+              <div class="media-left">
+                <span>
+                  <i class="fas fa-table"></i>
+                </span>
               </div>
-            </div>
-          </article>
+              <div class="media-content">
+                <div class="content">
+                  <p>
+                    <router-link :to="'/admin/table/' + table.modelName">
+                      <strong>{{ table.tableName }}</strong>
+                    </router-link><br/>
+                    <small>Items: {{ table.metadata.itemCount }}</small>
+                  </p>
+                </div>
+              </div>
+            </article>
+          </div>
         </div>
       </div>
-
+      <div v-else>
+        <div v-if="error" class="notification is-warning is-light">
+          You are not admin to access this page.
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -98,6 +104,9 @@ export default {
   computed: {
     token () {
       return this.$store.state.user.token
+    },
+    isAdmin () {
+      return this.$store.state.user.isAdmin
     },
     server () {
       return this.$store.state.config.server

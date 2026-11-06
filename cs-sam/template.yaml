@@ -86,6 +86,15 @@ Resources:
               - ses:SendRawEmail
             Effect: Allow
             Resource: "*"
+          # Claude Sonnet 4.5 via the US cross-region inference profile
+          # (admin_controller.call_bedrock_llm). The profile can route to any
+          # US region, so the foundation-model ARN uses a region wildcard.
+          - Action:
+              - bedrock:InvokeModel
+            Effect: Allow
+            Resource:
+              - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+              - "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0"
           Version: '2012-10-17'
         PolicyName: 'MyAppFunctionRolePolicy'
 
