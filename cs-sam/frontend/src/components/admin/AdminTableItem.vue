@@ -283,7 +283,7 @@ export default {
         }
         var name = f[0]
         var type = f[1] || 'obj'
-        var modifiers = f.slice(2)
+        var modifiers = f.slice(2).map(m => (m == 'auto-create' || m == 'auto-update') ? 'auto' : m)
         fields.push({name: name, type: type, modifiers})
       }
       return fields

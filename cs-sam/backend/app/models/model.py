@@ -1,4 +1,4 @@
-import uuid
+import uuid, time
 from ..services import dynamo_service
 from ..errors import MyError
 
@@ -62,6 +62,12 @@ class Model:
         key_value = data.get(key_field)
         if not key_value:
             data[key_field] = str(uuid.uuid4())
+        timestamp = int(time.time())
+        for f in cls.Fields[1:]:
+            if len(f) < 3:
+                continue
+            if f[1] == 'timestamp' and (f[2] == 'auto-create' or f[2] == 'auto-update'):
+                data[f[0]] = timestamp
         item = cls(data)
         dynamo_service.create_item(table, item.data, key_field)
         return item
@@ -71,10 +77,13 @@ class Model:
         table = dynamo_service.get_table(cls.TableName)
         key_field = cls.Fields[0][0]
         data = {}
-        for field in cls.Fields[1:]:
-            field_name = field[0]
+        timestamp = int(time.time())
+        for f in cls.Fields[1:]:
+            field_name = f[0]
             if field_name in updates:
                 data[field_name] = updates[field_name]
+            if len(f) >= 3 and f[1] == 'timestamp' and f[2] == 'auto-update':
+                data[f[0]] = timestamp
         dynamo_service.update_item(table, key_field, key_value, data)
         item = dynamo_service.get_item(table, key_field, key_value)
         return cls(item)

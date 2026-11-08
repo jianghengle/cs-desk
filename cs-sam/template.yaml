@@ -48,6 +48,128 @@ Resources:
           Projection:
             ProjectionType: "ALL"
 
+  CustomersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "CsCustomers"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        -
+          AttributeName: "id"
+          AttributeType: "S"
+        -
+          AttributeName: "email"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "id"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "emailGSI"
+          KeySchema:
+            -
+              AttributeName: "email"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
+
+  TicketsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "CsTickets"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        -
+          AttributeName: "id"
+          AttributeType: "S"
+        -
+          AttributeName: "status"
+          AttributeType: "S"
+        -
+          AttributeName: "createdAt"
+          AttributeType: "N"
+      KeySchema:
+        -
+          AttributeName: "id"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "statusGSI"
+          KeySchema:
+            -
+              AttributeName: "status"
+              KeyType: "HASH"
+            -
+              AttributeName: "createdAt"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+
+  CommentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "CsComments"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        -
+          AttributeName: "id"
+          AttributeType: "S"
+        -
+          AttributeName: "ticketId"
+          AttributeType: "S"
+        -
+          AttributeName: "createdAt"
+          AttributeType: "N"
+      KeySchema:
+        -
+          AttributeName: "id"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "ticketIdGSI"
+          KeySchema:
+            -
+              AttributeName: "ticketId"
+              KeyType: "HASH"
+            -
+              AttributeName: "createdAt"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+
+  AttachmentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "CsAttachments"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        -
+          AttributeName: "id"
+          AttributeType: "S"
+        -
+          AttributeName: "commentId"
+          AttributeType: "S"
+        -
+          AttributeName: "createdAt"
+          AttributeType: "N"
+      KeySchema:
+        -
+          AttributeName: "id"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "commentIdGSI"
+          KeySchema:
+            -
+              AttributeName: "commentId"
+              KeyType: "HASH"
+            -
+              AttributeName: "createdAt"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+
   MyAppFunctionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -81,6 +203,14 @@ Resources:
             Resource:
               - !GetAtt UsersTable.Arn
               - !Join [ '/',[!GetAtt UsersTable.Arn, index/*]]
+              - !GetAtt CustomersTable.Arn
+              - !Join [ '/',[!GetAtt CustomersTable.Arn, index/*]]
+              - !GetAtt TicketsTable.Arn
+              - !Join [ '/',[!GetAtt TicketsTable.Arn, index/*]]
+              - !GetAtt CommentsTable.Arn
+              - !Join [ '/',[!GetAtt CommentsTable.Arn, index/*]]
+              - !GetAtt AttachmentsTable.Arn
+              - !Join [ '/',[!GetAtt AttachmentsTable.Arn, index/*]]
           - Action:
               - ses:SendEmail
               - ses:SendRawEmail
@@ -95,6 +225,20 @@ Resources:
             Resource:
               - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0"
               - "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0"
+          # Attachments bucket: read/write objects. Presigned upload/download URLs
+          # are signed with this role, so they need the same GetObject/PutObject.
+          # ListBucket makes a missing key return 404 instead of 403.
+          # (Bucket name is built by !Sub, not !Ref, to avoid a dependency cycle:
+          # bucket CORS -> Distribution -> API -> function -> this role.)
+          - Action:
+              - s3:GetObject
+              - s3:PutObject
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${AWS::StackName}-attachments-${AWS::AccountId}-${AWS::Region}/*"
+          - Action:
+              - s3:ListBucket
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${AWS::StackName}-attachments-${AWS::AccountId}-${AWS::Region}"
           Version: '2012-10-17'
         PolicyName: 'MyAppFunctionRolePolicy'
 
@@ -124,6 +268,69 @@ Resources:
             Method: options
       Role:
         !GetAtt MyAppFunctionRole.Arn
+      Environment:
+        Variables:
+          ATTACHMENTS_BUCKET: !Sub "${AWS::StackName}-attachments-${AWS::AccountId}-${AWS::Region}"
+
+  # ---------- Attachments: private S3 bucket, accessed via presigned URLs ----------
+  AttachmentsBucket:
+    Type: AWS::S3::Bucket
+    # User data: keep the bucket (and its objects) if the stack is deleted or
+    # the resource is replaced. Delete it manually if you really want it gone.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      # Fixed name so the role/function can reference it without !Ref (see role).
+      BucketName: !Sub "${AWS::StackName}-attachments-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      # Browsers upload/download directly with presigned URLs, which needs CORS.
+      # CORS only controls which pages may read responses; the presigned URL's
+      # signature is what authorizes the request.
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - !Sub "https://${Distribution.DomainName}"
+              - "http://localhost:5173"     # Vite dev server
+            AllowedMethods: [GET, HEAD, PUT, POST]
+            AllowedHeaders: ['*']
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
+      LifecycleConfiguration:
+        Rules:
+          - Id: AbortIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+
+  # Reject plain-HTTP requests (presigned URLs are https, but enforce it anyway).
+  AttachmentsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AttachmentsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt AttachmentsBucket.Arn
+              - !Sub "${AttachmentsBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
 
   # ---------- Frontend: private S3 bucket served via CloudFront ----------
   FrontendBucket:
@@ -243,6 +450,9 @@ Outputs:
   FrontendBucketName:
     Description: "S3 bucket holding the built frontend (upload frontend/dist here)"
     Value: !Ref FrontendBucket
+  AttachmentsBucketName:
+    Description: "S3 bucket for ticket/comment attachments (also in the function's ATTACHMENTS_BUCKET env var)"
+    Value: !Ref AttachmentsBucket
   DistributionId:
     Description: "CloudFront distribution ID (for cache invalidations)"
     Value: !Ref Distribution

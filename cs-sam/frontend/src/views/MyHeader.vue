@@ -1,10 +1,10 @@
 <template>
   <div>
     <nav class="navbar has-shadow" role="navigation" aria-label="main navigation">
-      <div class="container p-3">
+      <div class="container">
         <div class="navbar-brand">
           <router-link class="navbar-item is-size-4 has-text-weight-bold" :to="'/'">
-            Serverless Django
+            Worldwide CS Desk
           </router-link>
           
 

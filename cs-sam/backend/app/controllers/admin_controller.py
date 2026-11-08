@@ -8,6 +8,10 @@ from botocore.exceptions import ClientError, ReadTimeoutError, ConnectTimeoutErr
 
 from ..my_http import MyError, admin_required
 from ..models.user_model import UserModel
+from ..models.customer_model import CustomerModel
+from ..models.ticket_model import TicketModel
+from ..models.comment_model import CommentModel
+from ..models.attachment_model import AttachmentModel
 from ..services import dynamo_service
 
 # Claude Sonnet 4.5 via the US cross-region inference profile. Override with
@@ -20,6 +24,10 @@ _bedrock_client = None
 
 AdminModels = [
     ('user', UserModel),
+    ('customer', CustomerModel),
+    ('ticket', TicketModel),
+    ('comment', CommentModel),
+    ('attachment', AttachmentModel),
 ]
 
 def get_model_class(model_name):

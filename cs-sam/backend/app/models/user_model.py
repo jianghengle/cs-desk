@@ -14,6 +14,7 @@ class UserModel(Model):
     }
     # types: bool | enum | int | float | timestamp (seconds) | str | text | email | password | list (strs) | obj (all others)
     # modifiers: readonly, hidden, auto, required (only effectve on str)
+    # timestamp auto can be done in base Model, need to change to auto-create / auto-update
     Fields = [
         ('id', 'str'),
         ('email', 'email', 'readonly'),
@@ -23,8 +24,8 @@ class UserModel(Model):
         ('groups', 'list'),
         ('token', 'str', 'hidden'),
         ('tokenUsedAt', 'timestamp', 'auto'),
-        ('createdAt', 'timestamp', 'auto'),
-        ('updatedAt', 'timestamp', 'auto'),
+        ('createdAt', 'timestamp', 'auto-create'),
+        ('updatedAt', 'timestamp', 'auto-update'),
     ]
 
     def __init__(self, data={}):
